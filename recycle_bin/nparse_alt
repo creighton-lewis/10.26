@@ -1,0 +1,175 @@
+#!/usr/bin/env python3
+import xml.etree.ElementTree as ET
+import sys
+import datetime
+
+## Define potentially risky ports
+HIGH_RISK_PORTS = {
+    '21': 'FTP - File Transfer Protocol (often unencrypted)',
+    '23': 'Telnet - Unencrypted remote access',
+    '25': 'SMTP - Email transfer (may allow relay)',
+    '445': 'SMB - Windows file sharing (potential target for worms)',
+    '3389': 'RDP - Remote Desktop Protocol (target for brute force)',
+    '1433': 'MSSQL - Microsoft SQL Server',
+    '3306': 'MySQL - Database access',
+    '5432': 'PostgreSQL - Database access'
+}
+
+## Services with known security issues
+OUTDATED_SERVICES = {
+    'ssh': [
+        {'version': '1', 'reason': 'SSHv1 has known vulnerabilities'},
+        {'version': 'OpenSSH 7', 'reason': 'Older OpenSSH versions have multiple CVEs'}
+    ],
+    'http': [
+        {'version': 'Apache httpd 2.2', 'reason': 'Apache 2.2.x is end-of-life'},
+        {'version': 'Apache httpd 2.4.1', 'reason': 'Apache versions before 2.4.30 have known vulnerabilities'},
+        {'version': 'nginx 1.14', 'reason': 'Older nginx versions have security issues'}
+    ]
+}
+
+def analyze_security(xml_file):
+    try:
+        ## Parse the XML file
+        tree = ET.parse(xml_file)
+        root = tree.getroot()
+
+        ## Prepare the report
+        report = []
+        report.append("NMAP SECURITY ANALYSIS REPORT")
+        report.append("=" * 50)
+        report.append(f"Report generated on: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        report.append(f"Scan started at: {root.get('startstr')}")
+        report.append(f"Scan command: {root.get('args')}")
+        report.append("=" * 50)
+
+        ## Track security findings
+        high_risk_services = []
+        potentially_outdated = []
+        exposed_services = []
+
+        ## Process each host in the scan
+        for host in root.findall('host'):
+            ## Get host addresses
+            ip_address = None
+            for addr in host.findall('address'):
+                if addr.get('addrtype') == 'ipv4':
+                    ip_address = addr.get('addr')
+
+            hostname = "Unknown"
+            hostnames = host.find('hostnames')
+            if hostnames is not None:
+                hostname_elem = hostnames.find('hostname')
+                if hostname_elem is not None:
+                    hostname = hostname_elem.get('name')
+
+            report.append(f"\nHOST: {ip_address} ({hostname})")
+            report.append("-" * 50)
+
+            ## Process ports
+            ports = host.find('ports')
+            if ports is None:
+                report.append("No port information available")
+                continue
+
+            open_ports = 0
+            for port in ports.findall('port'):
+                port_id = port.get('portid')
+                protocol = port.get('protocol')
+
+                ## Get port state
+                state = port.find('state')
+                if state is None or state.get('state') != "open":
+                    continue
+
+                open_ports += 1
+
+                ## Get service information
+                service = port.find('service')
+                if service is None:
+                    service_name = "unknown"
+                    service_product = ""
+                    service_version = ""
+                else:
+                    service_name = service.get('name', 'unknown')
+                    service_product = service.get('product', '')
+                    service_version = service.get('version', '')
+
+                service_full = f"{service_product} {service_version}".strip()
+
+                ## Check if this is a high-risk port
+                if port_id in HIGH_RISK_PORTS:
+                    high_risk_services.append(f"{ip_address}:{port_id} ({service_name}) - {HIGH_RISK_PORTS[port_id]}")
+
+                ## Check for outdated services
+                if service_name in OUTDATED_SERVICES:
+                    for outdated in OUTDATED_SERVICES[service_name]:
+                        if outdated['version'] in service_full:
+                            potentially_outdated.append(f"{ip_address}:{port_id} - {service_name} {service_full} - {outdated['reason']}")
+
+                ## Track all exposed services
+                exposed_services.append(f"{ip_address}:{port_id}/{protocol} - {service_name} {service_full}")
+
+            report.append(f"Open ports: {open_ports}")
+
+        ## Add security findings to report
+        report.append("\nSECURITY FINDINGS")
+        report.append("=" * 50)
+
+        ## High-risk services
+        report.append("\nHIGH-RISK SERVICES")
+        report.append("-" * 50)
+        if high_risk_services:
+            for service in high_risk_services:
+                report.append(service)
+        else:
+            report.append("No high-risk services detected")
+
+        ## Potentially outdated services
+        report.append("\nPOTENTIALLY OUTDATED SERVICES")
+        report.append("-" * 50)
+        if potentially_outdated:
+            for service in potentially_outdated:
+                report.append(service)
+        else:
+            report.append("No potentially outdated services detected")
+
+        ## Exposed services inventory
+        report.append("\nEXPOSED SERVICES INVENTORY")
+        report.append("-" * 50)
+        if exposed_services:
+            for service in exposed_services:
+                report.append(service)
+        else:
+            report.append("No exposed services detected")
+
+        ## Write the report to a file
+        report_file = "security_report.txt"
+        with open(report_file, 'w') as f:
+            f.write('\n'.join(report))
+
+        print(f"Security analysis complete. Report saved to {report_file}")
+
+        ## Display a summary
+        print("\nSummary:")
+        print(f"- High-risk services: {len(high_risk_services)}")
+        print(f"- Potentially outdated services: {len(potentially_outdated)}")
+        print(f"- Total exposed services: {len(exposed_services)}")
+
+    except ET.ParseError as e:
+        print(f"Error parsing XML file: {e}")
+        return False
+    except Exception as e:
+        print(f"Error: {e}")
+        return False
+
+    return True
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print(f"Usage: {sys.argv[0]} <nmap_xml_file>")
+        sys.exit(1)
+
+    xml_file = sys.argv[1]
+    if not analyze_security(xml_file):
+        sys.exit(1)
