@@ -8,17 +8,14 @@ import sys
 import pathlib
 import argparse
 import json
-from exploit_search.modules import MsfModule
-from exploit_search.modules import NvdDB
-from exploit_search.modules import ExploitDB
-from exploit_search.modules import CVESearch
-from common.out_parse import Output
-from nmap_scan.nparse import NmapParse
+from modules import MsfModule
+from modules import NvdDB
+from modules import ExploitDB
+from modules import CVESearch
+from nmap_scan.outparse import Output
+from nparse import NmapParse
 #from common.nmap_parse_copy import NmapParse
 #from common.nmap_parse_copy import NmapParse
-
-import argparse
-import json
 
 def main(args, keyword="", keyword_version=""):
     # ---- 1. Handle the 'all' flag ---------------------------------
@@ -93,7 +90,7 @@ if __name__ == "__main__":
     parser.add_argument('--all', action='store_true',help='Use both ExploitDB and Metasploit modules as sources')
     parser.add_argument('--msfmodule', action='store_true', help='Use metasploit module as a source of information')
     parser.add_argument('-o','--output', type=str, help='path to save the output')
-    parser.add_argument('-ot','--output_type', type=str, help='output file type json and html')
+    parser.add_argument('-ot','--output_type', type=str, help='output file type json and yaml')
 
     args = parser.parse_args()
     if args.nmap:
