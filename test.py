@@ -19,13 +19,14 @@ def main():
         content = file.read()
         print(content)   
     result = os.system(f"grep 'CVE' {temp_file} >> {cve_file}")
-    os.system(f"sed -E 's/CVE://' {cve_file} ")
+    os.system(f"sed -E 's/CVE://' {cve_file}")
 try:
         cve_output = batch_from_file(f"{cve_file}")
 except:
         console.print("Fail")
 try:
             cve_output = os.system(f"uv run poc.py -f {cve_file} >> last_file")
+            
 except:
             console.print("Fail")
 main()

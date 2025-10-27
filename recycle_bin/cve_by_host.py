@@ -15,6 +15,7 @@ host_cves: defaultdict[str, set[str]] = defaultdict(set)
 cur_host = None
 
 with open(INPUT, "r", encoding="utf-8") as fh:
+    for line in fh:
         # Detect a new host line – “Host: 127.0.0.1”
         m = re.match(r"^Host:\s+(.+)", line)
         if m:

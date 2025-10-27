@@ -2,7 +2,7 @@ from colorama import Fore, Back, Style
 import re
 import os
 import json
-
+import pyaml #type:ignore
 class Output:
     def __init__(self):
         self.data = []
@@ -128,7 +128,7 @@ usage : vulny.py --help
     
     def outYaml(self, file, location=""):
         """Export data to YAML."""
-        import yaml
+        import pyaml
         yaml = pyaml
         self.genOutDir(location)
         report = yaml.dump(self.data, indent=4, sort_keys=False)

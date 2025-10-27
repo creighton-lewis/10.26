@@ -5,8 +5,8 @@ nmap_scan_report.py
     open port that has a “vulners” NSE script result, lists the CVE IDs
     and a short description fetched from NVD.
 
-    The script uses only the standard library plus `requests` (you
-    may need to `pip install requests`).
+    The script is deliberately minimal – it uses only the standard library
+    plus `requests` (you may need to `pip install requests`).
 """
 
 # --------------------------------------------------------------------
@@ -21,10 +21,7 @@ from typing import Dict, List, Optional, Any
 try:
     import requests    # pip install requests
 except ImportError:      # pragma: no cover - defensive
-    print(
-        "The script requires the *requests* package – install with:\n"
-        "    pip install requests"
-    )
+    print("The script requires the *requests* package – install with:\n    pip install requests")
     sys.exit(1)
 
 # --------------------------------------------------------------------
@@ -34,13 +31,15 @@ _NVD_BASE_URL = "https://services.nvd.nist.gov/rest/json/cves/2.0"
 
 def _get_cve_summary(cve_id: str) -> Optional[str]:
     """
-    Return a one‑liner description of *cve_id* from the NVD.
-    Uses the keyword‑search endpoint; returns ``None`` on failure.
+    Return a one‑line description of *cve_id* from the NVD.
+
+    Uses the (cheap) keyword search endpoint.  If the request fails
+    or the CVE is not found, returns None.
     """
     params = {"keywordSearch": cve_id}
     try:
         resp = requests.get(_NVD_BASE_URL, params=params, timeout=5)
-    except Exception:          # pragma: no cover
+    except Exception:
         return None
 
     if resp.status_code != 200:
@@ -51,37 +50,26 @@ def _get_cve_summary(cve_id: str) -> Optional[str]:
     if not items:
         return None
 
-    desc_data = items[0].get("cve", {}).get("description", {}).get(
-        "description_data", [{}]
-    )
+    # Grab the first available description – usually the first one is good enough.
+    desc_data = items[0].get("cve", {}).get("description", {}).get("description_data", [{}])
     description = desc_data[0].get("value", "").strip()
-    return description.replace("\n", " ") if description else None
+    if description:
+        return description.replace("\n", " ")  # keep it one‑liner
+    return None
 
 
 # --------------------------------------------------------------------
-# Main parser – returns a list of host infos
+# Main parser – unchanged except for the CVE block
 # --------------------------------------------------------------------
-class NmapParse:
+class NmapParse():
     @staticmethod
+    #def parse(xml_file: str) -> bool:
     def parse(xml_file: Path | str) -> Optional[List[Dict[str, Any]]]:
-        """
-        Parse the supplied Nmap XML file and return a **list of host dictionaries**.
-        Each host dictionary contains:
-
-        * ``ip``          – IPv4 address
-        * ``hostnames``   – list of hostnames
-        * ``status``      – host state
-        * ``ports``       – list of open‑port dictionaries
-          (``portid``, ``protocol``, ``state``, ``service`` , ``product``,
-          ``version``, ``cve`` – list of CVE IDs from the *vulners* script).
-
-        On a parsing error ``None`` is returned.
-        """
         try:
             tree = ET.parse(str(xml_file))
             root = tree.getroot()
-
             hosts: List[Dict[str, Any]] = []
+
 
             # ---- Scan meta ---------------------------------------------
             print("Nmap Scan Report")
@@ -93,55 +81,45 @@ class NmapParse:
 
             # ---- Per‑host loop ------------------------------------------
             for host in root.findall("host"):
-                host_info: Dict[str, Any] = {}
 
                 # ----- IP addresses ---------------------------------------
-                ip_address = None
                 for addr in host.findall("address"):
                     if addr.get("addrtype") == "ipv4":
                         ip_address = addr.get("addr")
-                        host_info["ip"] = ip_address
-                if ip_address:
-                    print(f"\nHost: {ip_address}")
+                        print(f"\nHost: {ip_address}")
 
                 # ----- Hostname --------------------------------------------
                 hostnames = host.find("hostnames")
-                hn_list = []
                 if hostnames is not None:
                     for hostname in hostnames.findall("hostname"):
-                        hn = hostname.get("name")
-                        hn_list.append(hn)
-                        print(f"Hostname: {hn}")
-                host_info["hostnames"] = hn_list
+                        print(f"Hostname: {hostname.get('name')}")
 
                 # ----- Status -----------------------------------------------
                 status = host.find("status")
-                st = status.get("state") if status is not None else "unknown"
-                host_info["status"] = st
-                print(f"Status: {st}")
+                if status is not None:
+                    print(f"Status: {status.get('state')}")
 
                 # ----- Ports -----------------------------------------------
-                ports_node = host.find("ports")
-                port_list: List[Dict[str, Any]] = []
-                if ports_node is not None:
+                ports = host.find("ports")
+                if ports is not None:
                     print("\nOpen Ports:")
                     print("-" * 50)
                     print(f"{'PORT':<10}{'STATE':<10}{'SERVICE':<15}{'VERSION'}")
                     print("-" * 50)
 
-                    for port in ports_node.findall("port"):
-                        portid = port.get("portid")
+                    for port in ports.findall("port"):
+                        port_id = port.get("portid")
                         protocol = port.get("protocol")
 
                         # Port state
                         state_el = port.find("state")
-                        port_state = (
-                            state_el.get("state") if state_el is not None else "unknown"
-                        )
+                        port_state = state_el.get("state") if state_el is not None else "unknown"
+
+                        # Skip closed/filtered
                         if port_state != "open":
                             continue
 
-                        # Service info
+                        # Service details
                         svc_el = port.find("service")
                         if svc_el is not None:
                             svc_name = svc_el.get("name", "")
@@ -153,6 +131,7 @@ class NmapParse:
                             svc_info = ""
 
                         # ---- CVE parsing block --------------------------------
+                        # Look for <script id="vulners"> inside the port
                         vulners_cves: List[str] = []
                         for scr in port.findall("script"):
                             if scr.get("id") == "vulners":
@@ -160,10 +139,7 @@ class NmapParse:
                                 vulners_cves += re.findall(r"CVE-\d{4}-\d{4,7}", out)
 
                         # Print port line
-                        print(
-                            f"{portid}/{protocol:<5} {port_state:<10}"
-                            f"{svc_name:<15}{svc_info}"
-                        )
+                        print(f"{port_id}/{protocol:<5} {port_state:<10}{svc_name:<15}{svc_info}")
 
                         # If we found CVEs, print them one line each
                         for cve in vulners_cves:
@@ -171,71 +147,36 @@ class NmapParse:
                             if desc:
                                 print(f"    CVE: {cve} – {desc[:80]}…")
                             else:
+                                # fallback – just show ID; no description
                                 print(f"    CVE: {cve}")
-
-                        # Add to the list that will be returned
-                        port_list.append(
-                            {
-                                "portid": portid,
-                                "protocol": protocol,
-                                "state": port_state,
-                                "service": svc_name,
-                                "product": svc_product,
-                                "version": svc_version,
-                                "cve": vulners_cves,
-                            }
-                        )
-
-                host_info["ports"] = port_list
 
                 # ----- OS --------------------------------------------------
                 os_el = host.find("os")
-                os_list = []
                 if os_el is not None:
                     print("\nOS Detection:")
                     for osmatch in os_el.findall("osmatch"):
-                        os_name = osmatch.get("name")
-                        accuracy = osmatch.get("accuracy")
-                        os_list.append((os_name, accuracy))
-                        print(f"OS: {os_name} (Accuracy: {accuracy}%)")
-                host_info["os"] = os_list
-
-                hosts.append(host_info)
+                        print(f"OS: {osmatch.get('name')} (Accuracy: {osmatch.get('accuracy')}%)")
 
         except ET.ParseError as e:
-            print(f"Error parsing XML file: {e}", file=sys.stderr)
-            return None
+            print(f"Error parsing XML file: {e}")
+            #return False
+            return []
+        except Exception as e:
+            print(f"Error: {e}")
+            #return False
+            return 
 
-        except Exception as e:                     # pragma: no cover
-            print(f"Unexpected error: {e}", file=sys.stderr)
-            return None
-
-        return hosts
-
-
-# --------------------------------------------------------------------
-# Script entry point
-# --------------------------------------------------------------------
-def main() -> None:
-    if len(sys.argv) != 2:
-        print(f"Usage: {sys.argv[0]} <nmap_xml_file>")
-        sys.exit(1)
-
-    xml_file = Path(sys.argv[1])
-    if not xml_file.exists():
-        print(f"File not found: {xml_file}", file=sys.stderr)
-        sys.exit(1)
-
-    # Parse and retrieve the host data
-    hosts = NmapParse.parse(xml_file)
-    if hosts is None:
-        sys.exit(1)
-
-    # OPTIONAL: do something with the returned data
-    # (the script already prints everything, so this is just a placeholder)
-    # for host in hosts:
-    #     ... (your own processing)
+        return True
 
 
-if __name__ == "__main__":
-    main()
+    # --------------------------------------------------------------------
+    # Script entry point
+    # --------------------------------------------------------------------
+    if __name__ == "__main__":
+        if len(sys.argv) != 2:
+            print(f"Usage: {sys.argv[0]} <nmap_xml_file>")
+            sys.exit(1)
+
+        xml_file = sys.argv[1]
+        if not parse(xml_file):
+            sys.exit(1)
