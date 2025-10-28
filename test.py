@@ -1,11 +1,11 @@
 import os 
 import sys
 import time
+import xml.etree.ElementTree as ET
 from pathlib import Path 
 from rich.console import Console 
 console = Console()
 from poc import batch_from_file
-import xml.etree.ElementTree as ET
 from typing import Dict, List, Optional
 file_path = sys.argv[1]
 file_name = Path(file_path).stem
@@ -16,16 +16,17 @@ console.print("Running scan...")
 #Run initial script 
 def main():
     import subprocess
-    os.system(f"uv run nparse.py {file_path} >> {temp_file}") #creates normal looking report 
+    #Report Creation======================================== 
+    os.system(f"uv run nparse.py {file_path} >> {temp_file}")
     try:
-        os.system(f"uv run main.py -nm {file_path} --all")
+        os.system(f"uv run main.py -nm {file_path} --all") # Finding services 
     except:
         console.print("Unable to run normal nmap scan for services")
+    #Report Reviewing===============================================
     with open(f"{temp_file}", 'r') as file: #ensures file looks good 
         content = file.read()
         print(content)   
-    #result = os.system(f"grep 'CVE' {temp_file} >> {cve_file}") #exports found cve's to a regular file 
-    #os.remove(temp_file)
+    
     subprocess.run(['grep', 'CVE', 'temp_file', '>>', 'cve_file'], capture_output=True, text=True)
     subprocess.run ("sed -i 's/CVE://g' cve_file", shell=True)
     """ 
