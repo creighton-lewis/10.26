@@ -12,7 +12,7 @@ from modules import MsfModule
 from modules import NvdDB
 from modules import ExploitDB
 from modules import CVESearch
-from nmap_scan.outparse import Output
+from outparse import Output
 from nparse import NmapParse
 #from common.nmap_parse_copy import NmapParse
 #from common.nmap_parse_copy import NmapParse
@@ -94,6 +94,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     if args.nmap:
+        
         nm_data = NmapParse.parse(pathlib.Path(args.nmap))
         if nm_data:
             for host in nm_data:
