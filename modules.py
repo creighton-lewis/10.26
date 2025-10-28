@@ -1,7 +1,7 @@
 import json
 import requests 
 import os 
-
+#Modules: These are the functiosn that help get the results we see 
 class MsfModule():
     
     def __init__(self):
