@@ -14,6 +14,8 @@ nmap_scan_report.py
 # --------------------------------------------------------------------
 import re
 import sys
+import json
+import xmltodict #type ignore
 from pathlib import Path
 import xml.etree.ElementTree as ET
 from typing import Dict, List, Optional, Any
@@ -26,7 +28,7 @@ except ImportError:      # pragma: no cover - defensive
         "    pip install requests"
     )
     sys.exit(1)
-
+#What does _NVD_BASE_URl
 # --------------------------------------------------------------------
 # Helpers – NVD query (keyword search)
 # --------------------------------------------------------------------
