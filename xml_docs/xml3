@@ -26,7 +26,7 @@
                  method="table"
                  conf="3"/>
         <script id="vulners"
-                output="CVE-2021-12345: Example FTP vulnerability&#10;CVE-2020-98765: Remote command injection" />
+                output="CVE-2001-0002: Example FTP vulnerability&#10;CVE-2020-98765: Remote command injection" />
       </port>
 
       <!-- HTTP – open, no vulnerabilities -->
