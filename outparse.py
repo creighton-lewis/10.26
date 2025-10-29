@@ -46,7 +46,7 @@ class Output:
     # --------------------------------------------------------------------------- #
     #                            API result printing                           #
     # --------------------------------------------------------------------------- #
-    def exploitdb(self, content: dict):
+    def exploitdb(self, content):
         """Show Exploit‑DB results."""
         try:
             results = content.get("data", [])
@@ -83,7 +83,7 @@ class Output:
         except Exception:
             self.console.print("|[red]- Internal Error - No result in ExploitDB![/red]")
 
-    def msfmodule(self, content: list):
+    def msfmodule(self, content):
         """Show Metasploit module results."""
         try:
             if content:
@@ -97,6 +97,7 @@ class Output:
                     self.console.print(f"|[blue]-[/blue] Module : {data['module']}")
                     self.console.print(f"|[blue]-[/blue] Link : {data['link']}")
                     self.console.print(f"|[blue]-[/blue] Description : {data['description']}")
+                    self.console.print(f"|[blue]-[/blue] Description : {data['description']}", justify="left")
                     self.console.print("|")
                     self.console.print("|")
 
@@ -144,15 +145,43 @@ class Output:
             self.console.print("|")
             self.console.print("|[red]- No result in National Vulnearbility Database![/red]")
 
-    def cvesearch(self, content :dict):
-        """Placeholder for a POC search (original code)."""
+    def cvesearch(self, content):
+        """Show CVE search results with POC information."""
         try:
-            if content:
-                self.console.print(f"|[green]+ POC Finder[/green]")
-                self.console.print("======")
-                self.console.print(content)
+            if isinstance(content, str):
+                # Direct POC result
+                self.console.print("|")
+                self.console.print(f"|[green]+ POC Information[/green]")
+                self.console.print("|------------------")
+                self.console.print(f"|[blue]-[/blue] {content}")
+                self.console.print("|")
+            elif isinstance(content, dict) and 'cves' in content:
+                # Service-based search results
+                self.console.print("|")
+                self.console.print(f"|[green]+ CVE POC Results[/green]")
+                self.console.print("|------------------")
+                
+                predata = []
+                for cve in content['cves']:
+                    self.console.print(f"|[blue]-[/blue] CVE ID: {cve['cve_id']}")
+                    self.console.print(f"|[blue]-[/blue] POC Available: Yes")
+                    self.console.print(f"|[blue]-[/blue] POC Details:")
+                    self.console.print(cve['poc'])
+                    self.console.print("|")
+                    
+                    predata.append({
+                        'cve_id': cve['cve_id'],
+                        'poc': cve['poc']
+                    })
+                
+                self.console.print(
+                    f"|[blue]-[/blue] Total Result: [green]{len(content['cves'])}[/green] POCs Found!"
+                )
+                self.data.append({"cvesearch": predata})
+            else:
+                self.console.print("|[red]- No POCs found![/red]")
         except Exception:
-            self.console.print("Unable to find POC from Tricktest CVE database.")
+            self.console.print("|[red]- Internal Error - Could not process CVE search results![/red]")
 
     # --------------------------------------------------------------------------- #
     #                           Data export helpers                             #

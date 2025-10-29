@@ -1,8 +1,3 @@
-"""
-from files.exploitr.module_msf import MsfModule
-from files.exploitr.module_msf import NvdDB
-from files.exploitr.module_msf import ExploitDB
-"""
 import os 
 import sys
 import pathlib
@@ -13,56 +8,86 @@ from modules import NvdDB
 from modules import ExploitDB
 from modules import CVESearch
 from outparse import Output
-from nparse import NmapParse
-#from common.nmap_parse_copy import NmapParse
-#from common.nmap_parse_copy import NmapParse
+from nparse2 import NmapParse
 
 def main(args, keyword="", keyword_version=""):
+    # Use the global Output instance instead of creating a new one
+    global Output
+    output = Output
+    
     # ---- 1. Handle the 'all' flag ---------------------------------
     if args.all:
         args.exploitdb = True
         args.msfmodule = True
         args.cvesearch = True
-        args.nvd = True        # now the following blocks will run
+        args.nvd = True
 
-    # ---- 2. Execute each source -----------------------------------
-    if args.exploitdb:
-        getnvd = (ExploitDB.find(keyword, keyword_version)
-                  if keyword_version else
-                  ExploitDB.find(keyword))
-        Output.exploitdb(getnvd)
+    # If we're processing Nmap data
+    if args.nmap:
+        nm_data = NmapParse.parse(pathlib.Path(args.nmap))
+        if nm_data:
+            for host in nm_data:
+                for port in host["ports"]:
+                    # Get service info
+                    kw = port["product"] or port["service"]  # Use product if available, fallback to service
+                    ver = port["version"] or ""
+                    
+                    # Look up each service
+                    if kw:
+                        output.start(kw, ver)
+                        
+                        # Do service-based lookups
+                        if args.exploitdb or args.all:
+                            results = ExploitDB.find(kw, ver)
+                            output.exploitdb(results)
+                            
+                        if args.msfmodule or args.all:
+                            results = MsfModule.find(kw, ver)
+                            output.msfmodule(results)
+                            
+                        if args.nvd or args.all:
+                            results = NvdDB.find(kw, ver)
+                            output.nvddb(results)
+                    
+                    # Handle any CVEs found for the port
+                    if "cve" in port and port["cve"]:
+                        for cve_id in port["cve"]:
+                            if args.cvesearch or args.all:
+                                results = CVESearch.find(cve_id)
+                                output.cvesearch(results)
 
-    if args.msfmodule:
-        getnvd = (MsfModule.find(keyword, keyword_version)
-                  if keyword_version else
-                  MsfModule.find(keyword))
-        Output.msfmodule(getnvd)
+    # Direct keyword/CVE search
+    else:
+        if keyword:
+            output.start(keyword, keyword_version)
+            
+            # Check if it's a CVE ID
+            if keyword.upper().startswith("CVE-"):
+                if args.cvesearch or args.all:
+                    results = CVESearch.find(keyword)
+                    output.cvesearch(results)
+            # Regular service/keyword search
+            else:
+                if args.exploitdb or args.all:
+                    results = ExploitDB.find(keyword, keyword_version)
+                    output.exploitdb(results)
+                
+                if args.msfmodule or args.all:
+                    results = MsfModule.find(keyword, keyword_version)
+                    output.msfmodule(results)
+                
+                if args.nvd or args.all:
+                    results = NvdDB.find(keyword, keyword_version)
+                    output.nvddb(results)
 
-    if args.nvd:
-        getnvd = (NvdDB.find(keyword, keyword_version)
-                  if keyword_version else
-                  NvdDB.find(keyword))
-        Output.nvddb(getnvd)
-    
-    if args.cvesearch:
-        from poc import fetch_poc
-        getcve = (CVESearch.find(keyword)
-                  if keyword else
-                  CVESearch.find(keyword))
-        Output.cvesearch(getcve)
-      
-   
-    
+    # Handle output
     if args.output:
-        
-        if args.output_type  == "json":
-            Output.outJson(args.output)
+        if args.output_type == "json":
+            output.outJson(args.output)
         elif args.output_type == "yaml":
-            Output.outYaml(args.output)
+            output.outYaml(args.output)
         else:
-            Output.outJson(args.output)
-            Output.outHtml(args.output)
-   
+            output.outJson(args.output)
 
 if __name__ == "__main__":
     #Initialize
@@ -82,7 +107,7 @@ if __name__ == "__main__":
 
     # Add arguments
     parser.add_argument('-k','--keyword', type=str, help='Keyword to search')
-    parser.add_argument('-kv','--keyword_version', type=str, help='File name or path to save the output')
+    parser.add_argument('-kv','--keyword_version', type=str, help='Version number for the keyword search')
     parser.add_argument('-nm','--nmap', type=str, help='Identify via nmap output')
     parser.add_argument('--nvd', action='store_true', help='Use NVD as a source of information')
     parser.add_argument('--cvesearch', action='store_true', help='Use more refs as a source of information')
@@ -108,16 +133,3 @@ if __name__ == "__main__":
     else:
         # Just a straight‑forward keyword search
         main(args, args.keyword or "", args.keyword_version or "")
-"""
-    if args.nmap:
-        nmparse = NmapParse.parse(args.nmap)
-        if nmparse:
-            for service in nmparse:
-                main(args, service['service'], service['version'])
-        else:
-           print("[!] Only Supported for single host portscan result")
-    else:
-        keyword = args.keyword
-        keyword_version = args.keyword_version
-        main(args, keyword , keyword_version)
-"""

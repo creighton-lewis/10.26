@@ -61,13 +61,32 @@ class CVESearch():
     def __init__(self):
         pass 
     def find(self, keyword = ""):
-        keyword = f"{keyword}"
-        if "CVE-" in keyword:
-            year = keyword.split('-')[1]
-            resp = requests.get(f"https://raw.githubusercontent.com/trickest/cve/refs/heads/main/{year}/{keyword}.md")
+        # Handle direct CVE ID lookups
+        if "CVE-" in keyword.upper():
+            cve_id = keyword.upper()
+            if not cve_id.startswith("CVE-"):
+                cve_id = f"CVE-{cve_id}"
+            year = cve_id.split('-')[1]
+            resp = requests.get(f"https://raw.githubusercontent.com/trickest/cve/refs/heads/main/{year}/{cve_id}.md")
             if resp.status_code == 200:
                 return resp.text
-            else:
-                return False
-            
-        
+            return False
+        # Handle service-based lookups by querying NVD
+        else:
+            nvd = NvdDB()
+            results = nvd.find(keyword)
+            if results and 'vulnerabilities' in results:
+                cve_list = []
+                for vuln in results['vulnerabilities']:
+                    if 'cve' in vuln:
+                        cve_id = vuln['cve']['id']
+                        # For each CVE found, try to get POC info
+                        poc_info = self.find(cve_id)
+                        if poc_info:
+                            cve_list.append({
+                                'cve_id': cve_id,
+                                'poc': poc_info
+                            })
+                return {'cves': cve_list} if cve_list else False
+            return False
+

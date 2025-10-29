@@ -13,7 +13,11 @@ nmap_scan_report.py
 # Imports
 # --------------------------------------------------------------------
 import re
+import time
 import sys
+import subprocess
+from rich.console import Console
+console = Console()
 import json
 import xmltodict #type ignore
 from pathlib import Path
@@ -32,13 +36,14 @@ except ImportError:      # pragma: no cover - defensive
 # --------------------------------------------------------------------
 # Helpers – NVD query (keyword search)
 # --------------------------------------------------------------------
+
+
 _NVD_BASE_URL = "https://services.nvd.nist.gov/rest/json/cves/2.0"
 
 def _get_cve_summary(cve_id: str) -> Optional[str]:
-    """
-    Return a one‑liner description of *cve_id* from the NVD.
-    Uses the keyword‑search endpoint; returns ``None`` on failure.
-    """
+    #Return a one‑liner description of *cve_id* from the NVD.
+    #Uses the keyword‑search endpoint; returns ``None`` on failure.
+
     params = {"keywordSearch": cve_id}
     try:
         resp = requests.get(_NVD_BASE_URL, params=params, timeout=5)
@@ -59,6 +64,7 @@ def _get_cve_summary(cve_id: str) -> Optional[str]:
     description = desc_data[0].get("value", "").strip()
     return description.replace("\n", " ") if description else None
 
+ 
 
 # --------------------------------------------------------------------
 # Main parser – returns a list of host infos
@@ -160,6 +166,7 @@ class NmapParse:
                             if scr.get("id") == "vulners":
                                 out = scr.get("output", "")
                                 vulners_cves += re.findall(r"CVE-\d{4}-\d{4,7}", out)
+                                #vulns = re.findall(r"CVE-\d{4}-\d{4,7}",out)
 
                         # Print port line
                         print(
@@ -171,9 +178,9 @@ class NmapParse:
                         for cve in vulners_cves:
                             desc = _get_cve_summary(cve)
                             if desc:
-                                print(f"    CVE: {cve} – {desc[:80]}…")
+                                print(f"    {cve} – {desc[:80]}…")
                             else:
-                                print(f"    CVE: {cve}")
+                                print(f"    {cve}")
 
                         # Add to the list that will be returned
                         port_list.append(
@@ -203,6 +210,24 @@ class NmapParse:
                 host_info["os"] = os_list
 
                 hosts.append(host_info)
+                #----Automated Exploit Finder -----------------------
+                
+                def results():
+                    cves = re.findall(r"CVE-\d{4}-\d{4,7}", out)
+                    subprocess.run(['grep', 'CVE', 'temp_file', '>>', 'cve_file'], capture_output=True, text=True)
+                    print(cves) # this is only thing that returns a value
+                    results()
+                """
+                #(xml_file:Path | str) -> Optional[List[Dict[str,Any]]]:
+                    keyword = print(svc_product)
+                    version = svc_version 
+                    combo=f"{keyword}_{version}"
+                    try:
+                        subprocess.run(['uv','run', 'main.py' , '-k' , keyword, '--cvesearch']) 
+                    except:
+                        console.print("Unable to run processes")
+                results()
+                """
 
         except ET.ParseError as e:
             print(f"Error parsing XML file: {e}", file=sys.stderr)
@@ -211,6 +236,7 @@ class NmapParse:
         except Exception as e:                     # pragma: no cover
             print(f"Unexpected error: {e}", file=sys.stderr)
             return None
+
 
         return hosts
 

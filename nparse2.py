@@ -136,23 +136,12 @@ class NmapParse:
                             if scr.get("id") == "vulners":
                                 out = scr.get("output", "")
                                 vulners_cves += re.findall(r"CVE-\d{4}-\d{4,7}", out)
-                                for all in vulners_cves:
-                                    get_cve_summary(all)
-                                #vulns = re.findall(r"CVE-\d{4}-\d{4,7}",out)
-
-                        # Print port line
-                        print(
-                            f"{portid}/{protocol:<5} {port_state:<10}"
-                            f"{svc_name:<15}{svc_info}"
-                        )
-
-                        # If we found CVEs, print them one line each
-                        for cve in vulners_cves:
-                            desc = get_cve_summary(cve)
-                            if desc:
-                                print(f"    {cve} – {desc[:80]}…")
-                            else:
-                                print(f"    {cve}")
+                                for cve_id in vulners_cves:
+                                    desc = get_cve_summary(cve_id)
+                                    if desc:
+                                        print(f"    {cve_id} – {desc[:80]}…")
+                                    else:
+                                        print(f"    {cve_id}")
 
                         # Add to the list that will be returned
                         port_list.append(
