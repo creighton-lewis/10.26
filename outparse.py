@@ -27,15 +27,42 @@ class Output:
     # --------------------------------------------------------------------------- #
     def banner(self):
         ascii_art = r"""
-        _._     _,-'""`-._
-        (,-.`._,'(       |\`-/|
-            `-.-' \ )-`( , [red]o o[/red]
-                `-    \`_`"'-
-        [red]SiCat[/red] - The useful [red]exploit[/red] finder
-        @justakazh (https://github.com/justakazh/sicat)
-
-        usage : vulny.py --help
-        """
+                             .d||b
+                           .' TO|;
+                          /  : TP._;
+                         / _.;  :Tb|
+                        /   /   ;j|j
+                    _.-"       d||||
+                  .' ..       d||||;
+                 /  /P'      d||||P. |\^"l
+              .'           'T|P^"""""  """
+           ._.'      _.'                ;
+       '-.-".-'-' ._.       _.-"    .-"
+      '-." _____  ._              .-"
+    -..g|||||||b.              .'
+    ""^^T|||P^)            .(:
+        _/  -  /.'         /:/;
+     ._.'-''-'  ")/         /;/;
+  '-.-"..--""   " /         /  ;
+ .-" ..--""        -'          :
+ ..--""--.-"         (\      .-(\
+   ..--""              
+     _.                      :
+                             ;'- 
+                            :\
+ [blue]
+ ______ _______ ______ 
+|   __ \       |      |
+|    __/   -   |   ---|
+|___|  |_______|______|
+ _______ _______ _______ _______ _____  
+|   |   |       |   |   |    |  |     \ 
+|       |   -   |   |   |       |  --  |
+|___|___|_______|_______|__|____|_____/ 
+[blue]
+POC finder that uses metasploit, exploitdb, trickest CVE list,
+and National Vulnerability database
+    """
         self.console.print(ascii_art)
 
     def start(self, keyword: str = "", version: str = ""):
