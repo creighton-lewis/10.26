@@ -1,3 +1,4 @@
+#Uses trickest wordlist
 import re
 import time
 import sys
@@ -175,9 +176,8 @@ class NmapParse:
                 
                 def results():
                     cves = re.findall(r"CVE-\d{4}-\d{4,7}", out)
-                    subprocess.run(['grep', 'CVE', 'temp_file', '>>', 'cve_file'], capture_output=True, text=True)
                     print(cves) # this is only thing that returns a value
-                    results()
+                results()
                 """
                 #(xml_file:Path | str) -> Optional[List[Dict[str,Any]]]:
                     keyword = print(svc_product)
