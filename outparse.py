@@ -147,7 +147,7 @@ and National Vulnerability database
             vulns = content.get("vulnerabilities", [])
             if vulns:
                 self.console.print("|")
-                self.console.print(f"|[green]+ National Vulnearbility Database Result[/green]")
+                self.console.print(f"|[green]+ National Vulnerability Database Result[/green]")
                 self.console.print("|-----------------------------------------------")
 
                 predata = []
@@ -156,6 +156,7 @@ and National Vulnerability database
                     desc = data["cve"]["descriptions"][0]["value"]
                     self.console.print(f"|[blue]-[/blue] ID : {id_}")
                     self.console.print(f"|[blue]-[/blue] Description : {desc}")
+                    self.console.print(f"|Metrics")
                     self.console.print(
                         f"|[blue]-[/blue] Link : https://nvd.nist.gov/vuln/detail/{id_}"
                     )
@@ -171,7 +172,7 @@ and National Vulnerability database
                 self.data.append({"nvddb": predata})
         except Exception:
             self.console.print("|")
-            self.console.print("|[red]- No result in National Vulnearbility Database![/red]")
+            self.console.print("|[red]- No result in National Vulnerability Database![/red]")
 
     def cvesearch(self, content):
         """Show CVE search results with POC information."""
