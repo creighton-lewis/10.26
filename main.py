@@ -8,7 +8,7 @@ from modules import NvdDB
 from modules import ExploitDB
 from modules import CVESearch
 from outparse import Output
-from nparse2 import NmapParse
+from nparse import NmapParse
 
 def main(args, keyword="", keyword_version=""):
     # Use the global Output instance instead of creating a new one
@@ -54,20 +54,12 @@ def main(args, keyword="", keyword_version=""):
                         for cve_id in port["cve"]:
                             if args.cvesearch or args.all:
                                 results = CVESearch.find(cve_id)
+                                more_results = NvdDB.find(cve_id)
                                 output.cvesearch(results)
+                                output.nvddb(more_results)
 
     # Direct keyword/CVE search
     else:
-        if keyword:
-            output.start(keyword, keyword_version)
-            
-            # Check if it's a CVE ID
-            if keyword.upper().startswith("CVE-"):
-                if args.cvesearch or args.all:
-                    results = CVESearch.find(keyword)
-                    output.cvesearch(results)
-            # Regular service/keyword search
-            else:
                 if args.exploitdb or args.all:
                     results = ExploitDB.find(keyword, keyword_version)
                     output.exploitdb(results)
@@ -79,7 +71,9 @@ def main(args, keyword="", keyword_version=""):
                 if args.nvd or args.all:
                     results = NvdDB.find(keyword, keyword_version)
                     output.nvddb(results)
-
+                if args.cvesearch or args.all:
+                    results = CVESearch.find(keyword)
+                    output.cvesearch(results)
     # Handle output
     if args.output:
         if args.output_type == "json":
