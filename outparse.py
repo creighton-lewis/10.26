@@ -7,6 +7,7 @@ import re          # kept from the original imports
 import os
 import json
 import pyaml       # type: ignore
+import yaml        # You may need to install PyYAML: pip install PyYAML
 from rich.console import Console
 
 
@@ -213,21 +214,20 @@ and National Vulnerability database
     # --------------------------------------------------------------------------- #
     #                           Data export helpers                             #
     # --------------------------------------------------------------------------- #
-    def outJson(self, location: str = ""):
-        self._gen_out_dir(location)
-        report = json.dumps(self.data, indent=4)
-        open(f"{location}/report.json", "w").write(report)
+    def outJson(self, filename: str):
+        """Export results to JSON file"""
+        try:
+            with open(f"{filename}.json", "w", encoding="utf-8") as f:
+                json.dump(self.data, f, indent=4)
+            self.console.print(f"[green]Successfully saved results to {filename}.json[/green]")
+        except Exception as e:
+            self.console.print(f"[red]Error saving JSON file: {str(e)}[/red]")
 
-    def outYaml(self, file: str, location: str = ""):
-        """Export data to YAML."""
-        report = pyaml.dump(self.data, indent=4, sort_keys=False)
-        with open(f"{file}report.yaml", "w", encoding="utf-8") as f:
-            f.write(report)
-
-    # --------------------------------------------------------------------------- #
-    #                             Utility helpers (re‑worked)                    #
-    # --------------------------------------------------------------------------- #
-    def _gen_out_dir(self, location: str):
-        """Create output directory if it doesn't exist."""
-        if not os.path.isdir(location):
-            os.makedirs(location, exist_ok=True)
+    def outYaml(self, filename: str):
+        """Export results to YAML file"""
+        try:
+            with open(f"{filename}.yaml", "w", encoding="utf-8") as f:
+                yaml.dump(self.data, f, default_flow_style=False)
+            self.console.print(f"[green]Successfully saved results to {filename}.yaml[/green]")
+        except Exception as e:
+            self.console.print(f"[red]Error saving YAML file: {str(e)}[/red]")
