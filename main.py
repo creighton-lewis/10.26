@@ -45,9 +45,7 @@ def main(args, keyword="", keyword_version=""):
                             results = MsfModule.find(kw, ver)
                             output.msfmodule(results)
                             
-                        if args.nvd or args.all:
-                            results = NvdDB.find(kw, ver)
-                            output.nvddb(results)
+                      
                     
                     # Handle any CVEs found for the port
                     if "cve" in port and port["cve"]:
