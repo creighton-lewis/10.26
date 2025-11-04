@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nmaprun scanner="nmap"
+         args="nmap -sS -p 21,22,80,443,3306,3389 --script vulners"
+         start="1700000000"
+         startstr="Thu Apr 25 12:00:00 2024"
+         version="7.91"
+         xmloutputversion="1.04">
+
+  <scaninfo type="syn" protocol="tcp" numservices="6" services="21,22,80,443,3306,3389" />
+
+  <!-- ============================================================= -->
+  <!-- Host 1 – SSH (vulners) and HTTP -->
+  <!-- ============================================================= -->
+  <host>
+    <status state="up" reason="syn-ack" reason_ttl="0"/>
+    <address addr="192.168.1.10" addrtype="ipv4"/>
+    <hostnames>
+      <hostname name="web1.local" type="user" method="default"/>
+    </hostnames>
+
+    <ports>
+      <port protocol="tcp" portid="22">
+        <state state="open" reason="syn-ack" reason_ttl="0"/>
+        <service name="ssh" product="OpenSSH 8.4p1" version="8.4p1" method="table" conf="3"/>
+        <script id="vulners"
+                output="CVE-2023-1234: OpenSSH key‑exchange vulnerability&#10;CVE-2022-4321: SSH‑dopamine flaw" />
+      </port>
+
+      <port protocol="tcp" portid="80">
+        <state state="open" reason="syn-ack" reason_ttl="0"/>
+        <service name="http" product="Apache httpd" version="2.4.48" method="table" conf="3"/>
+      </port>
+    </ports>
+
+    <os>
+      <osmatch name="Linux 4.15" accuracy="99" line="1"/>
+    </os>
+  </host>
+
+  <!-- ============================================================= -->
+  <!-- Host 2 – FTP (vulners) and HTTPS -->
+  <!-- ============================================================= -->
+  <host>
+    <status state="up" reason="syn-ack" reason_ttl="0"/>
+    <address addr="192.168.1.20" addrtype="ipv4"/>
+    <hostnames>
+      <hostname name="ftp2.local" type="user" method="default"/>
+    </hostnames>
+
+    <ports>
+      <port protocol="tcp" portid="21">
+        <state state="open" reason="syn-ack" reason_ttl="0"/>
+        <service name="ftp" product="vsftpd 3.0.3" version="3.0.3" method="table" conf="3"/>
+        <script id="vulners"
+                output="CVE-2022-8765: vsftpd authentication bypass" />
+      </port>
+
+      <port protocol="tcp" portid="443">
+        <state state="open" reason="syn-ack" reason_ttl="0"/>
+        <service name="https" product="Apache httpd" version="2.4.41" method="table" conf="3"/>
+      </port>
+    </ports>
+
+    <os>
+      <osmatch name="FreeBSD 12.1" accuracy="95" line="1"/>
+    </os>
+  </host>
+
+  <!-- ============================================================= -->
+  <!-- Host 3 – MySQL and RDP (vulners) -->
+  <!-- ============================================================= -->
+  <host>
+    <status state="up" reason="syn-ack" reason_ttl="0"/>
+    <address addr="192.168.1.30" addrtype="ipv4"/>
+    <hostnames>
+      <hostname name="db3.local" type="user" method="default"/>
+    </hostnames>
+
+    <ports>
+      <port protocol="tcp" portid="3306">
+        <state state="open" reason="syn-ack" reason_ttl="0"/>
+        <service name="mysql" product="MySQL" version="8.0.26" method="table" conf="3"/>
+      </port>
+
+      <port protocol="tcp" portid="3389">
+        <state state="open" reason="syn-ack" reason_ttl="0"/>
+        <service name="ms-wbt-server" product="Microsoft RDP" version="10.0" method="table" conf="3"/>
+        <script id="vulners"
+                output="CVE-2023-9999: RDP buffer overflow" />
+      </port>
+    </ports>
+
+    <os>
+      <osmatch name="Windows Server 2016" accuracy="98" line="1"/>
+    </os>
+  </host>
+</nmaprun>
