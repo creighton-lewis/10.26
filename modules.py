@@ -50,19 +50,27 @@ class NvdDB():
         pass
 
     def find(self, keyword = "", version = ""):
+        resp = requests.get(f"https://services.nvd.nist.gov/rest/json/cves/2.0?cveId={keyword}")
+        if resp.status_code == 200:
+            return resp.json()
+        if resp.status_code != 200:
+            return False
         keyword = f"{keyword} {version}"
         keyword = keyword.replace(" ", "%20")
         resp = requests.get(f"https://services.nvd.nist.gov/rest/json/cves/2.0?keywordSearch={keyword}")
         if resp.status_code == 200:
             return resp.json()
-        else:
+        if resp.status_code != 200:
             return False
+       
+"""
 class CVESearch():
     def __init__(self):
         pass 
     def find(self, keyword = ""):
         # Handle direct CVE ID lookups
         if "CVE-" in keyword.upper():
+            resp_text_new =[]
             cve_id = keyword.upper()
             if not cve_id.startswith("CVE-"):
                 cve_id = f"CVE-{cve_id}"
@@ -71,6 +79,42 @@ class CVESearch():
             if resp.status_code == 200:
                 return resp.text
             return False
+"""
+import re
+
+class CVESearch():
+    def __init__(self):
+        pass 
+    
+    def find(self, keyword=""):
+        # Handle direct CVE ID lookups
+        if "CVE-" in keyword.upper():
+            resp_text_new = []
+            cve_id = keyword.upper()
+            if not cve_id.startswith("CVE-"):
+                cve_id = f"CVE-{cve_id}"
+            year = cve_id.split('-')[1]
+            resp = requests.get(f"https://raw.githubusercontent.com/trickest/cve/refs/heads/main/{year}/{cve_id}.md")
+            
+            if resp.status_code == 200:
+                content = resp.text
+                
+                # Method 1: Remove lines containing img.shields
+                lines = content.split('\n')
+                filtered_lines = [line for line in lines if 'img.shields' not in line.lower()]
+                
+                # Method 2: Also remove markdown image syntax with shields URLs
+                # Pattern: ![alt text](url) or ![](url)
+                cleaned_content = '\n'.join(filtered_lines)
+                cleaned_content = re.sub(r'!\[.*?\]\(.*?img\.shields.*?\)', '', cleaned_content, flags=re.IGNORECASE)
+                
+                # Clean up extra blank lines
+                cleaned_content = re.sub(r'\n\s*\n\s*\n', '\n\n', cleaned_content)
+                
+                return cleaned_content.strip() if cleaned_content.strip() else False
+            
+            return False
+
         # Handle service-based lookups by querying NVD
         else:
             nvd = NvdDB()
