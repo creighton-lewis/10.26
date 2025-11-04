@@ -162,11 +162,20 @@ class NmapParse:
 
                         # ---- CVE parsing block --------------------------------
                         vulners_cves: List[str] = []
-                        for scr in port.findall("script"):
-                            if scr.get("id") == "vulners":
-                                out = scr.get("output", "")
-                                vulners_cves += re.findall(r"CVE-\d{4}-\d{4,7}", out)
-                                #vulns = re.findall(r"CVE-\d{4}-\d{4,7}",out)
+
+                        for script in port.findall("script[@id='vulners']"):
+                            # Method 1: Parse structured XML elements (for newer nmap versions)
+                            for elem in script.findall("element[@type='cve']"):
+                                cve_id = elem.get("id")
+                                if cve_id and cve_id.startswith("CVE-"):
+                                    vulners_cves.append(cve_id)
+                            
+                            # Method 2: Parse output attribute (for older nmap versions or simple output)
+                            # This runs regardless, so it catches both formats
+                            if not vulners_cves:
+                                output = script.get("output", "")
+                                if output:
+                                    vulners_cves = re.findall(r"CVE-\d{4}-\d{4,7}", output)
 
                         # Print port line
                         print(
@@ -174,6 +183,26 @@ class NmapParse:
                             f"{svc_name:<15}{svc_info}"
                         )
 
+                        # If we found CVEs, print them one line each
+                        for cve in vulners_cves:
+                            desc = _get_cve_summary(cve)
+                            if desc:
+                                print(f"    {cve} – {desc[:80]}…")
+                            else:
+                                print(f"    {cve}")
+
+                        """ 
+                        vulners_cves: List[str] = []
+                        for scr in port.findall("script"):
+                                if scr.get("id") == "vulners":
+                                    out = scr.get("output", "")
+                                    vulners_cves += re.findall(r"CVE-\d{4}-\d{4,7}", out)
+                            # Print port line
+                        print(
+                                f"{portid}/{protocol:<5} {port_state:<10}"
+                                f"{svc_name:<15}{svc_info}"
+                            )
+                        """
                         # If we found CVEs, print them one line each
                         for cve in vulners_cves:
                             desc = _get_cve_summary(cve)
@@ -211,12 +240,18 @@ class NmapParse:
 
                 hosts.append(host_info)
                 #----Automated Exploit Finder -----------------------
-                
+                """ 
                 def results():
                     cves = re.findall(r"CVE-\d{4}-\d{4,7}", out)
-                    subprocess.run(['grep', 'CVE', 'temp_file', '>>', 'cve_file'], capture_output=True, text=True)
-                    print(cves) # this is only thing that returns a value
-                    results()
+                    print(cves)
+                    for cve in cves:
+                        subprocess.run(["uv", "run", "poc.py", "-s", cve])
+                        #subprocess.run(["uv", "run", "main.py", "-k", cve, "--nvd"])
+                        #subprocess.run(["uv", "run", "main.py", "-k", cve, "--cvesearch"])
+                    #print(cves) # this is only thing that returns a value
+                results()
+                """
+             
                 """
                 #(xml_file:Path | str) -> Optional[List[Dict[str,Any]]]:
                     keyword = print(svc_product)
